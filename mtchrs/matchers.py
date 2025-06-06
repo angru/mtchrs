@@ -61,7 +61,7 @@ class PersistentMatcher(Matcher):
         return self._value == other
 
     def __repr__(self) -> str:
-        return f"PersistentMatcher(value={self._value})"
+        return f"PersistentMatcher(value={self._value!r})"
 
 
 mtch = Matcher

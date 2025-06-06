@@ -18,3 +18,9 @@ def test_matcher_keeps_value() -> None:
     user_id = mtch.eq()
     assert {"id": 1, "child": {"id": 2}} != {"id": user_id, "child": {"id": user_id}}
     assert {"id": 1, "child": {"id": 1}} == {"id": user_id, "child": {"id": user_id}}
+
+
+def test_persistent_matcher_repr() -> None:
+    matcher = mtch.eq()
+    assert matcher == "foo"
+    assert repr(matcher) == "PersistentMatcher(value='foo')"
