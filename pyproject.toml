@@ -3,23 +3,48 @@ name = "mtchrs"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "angru"}
+    {name = "angru", email = "angru@list.ru"},
 ]
-license = {text = "MIT"}
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = [
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: Unix",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Console",
+    "Environment :: MacOS X",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet",
 ]
 
-
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=80.9.0", "wheel>=0.45.1"]
+build-backend = "setuptools.build_meta"
 
-[tool.poetry.group.test.dependencies]
-pytest = "^8.4.0"
+[tool.setuptools]
+packages = ["mtchrs"]
 
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^4.2.0"
-black = "^25.1.0"
+[dependency-groups]
+dev = [
+    "setuptools>=80.9.0",
+    "wheel>=0.45.1",
+]
+lint = [
+    "black>=25.1.0",
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.13",
+]
+test = [
+    "pytest>=8.4.0",
+    "pytest-cov>=6.1.1",
+]
