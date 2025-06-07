@@ -1,3 +1,11 @@
+"""Composable matchers for flexible equality assertions.
+
+The :class:`Matcher` class wraps a predicate used during ``==`` comparisons.
+Matchers can be combined with ``&`` and ``|`` for logical composition and
+inverted with ``~``. They work inside nested data structures and integrate with
+``unittest.mock`` for verifying mock calls.
+"""
+
 from __future__ import annotations
 
 import re
@@ -11,6 +19,7 @@ class Matcher:
     comparisons. They can be combined with ``&`` and ``|`` to build complex
     conditions or inverted with ``~``.
     """
+
     def __init__(self, func: t.Callable[[t.Any], bool], repr_func: t.Callable[[], str]):
         self._func = func
         self._repr_func = repr_func
@@ -85,6 +94,7 @@ class Matcher:
 
 class PersistentMatcher(Matcher):
     """Matcher that stores the first value it matches for future comparisons."""
+
     _no_value = object()
 
     def __init__(self):
