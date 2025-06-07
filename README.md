@@ -16,7 +16,7 @@ pip install mtchrs
 ## Example
 
 ```python
-from mtchrs.matchers import mtch
+from mtchrs import mtch
 
 data = {"id": 1, "items": ["xyz", 1.5]}
 matcher = {"id": mtch.type(int), "items": [mtch.regex(r"^x"), mtch.type(float)]}
