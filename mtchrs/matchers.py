@@ -53,6 +53,21 @@ class Matcher:
             lambda: f"{compiled}",
         )
 
+    @staticmethod
+    def pred(predicate: t.Callable[[t.Any], bool], name: str | None = None) -> Matcher:
+        """Create a matcher from a custom predicate.
+
+        Args:
+            predicate: Callable returning ``True`` when the value matches.
+            name: Optional representation used for ``repr``. Defaults to the
+                predicate's ``__name__`` when available.
+        """
+
+        repr_str = (
+            name if name is not None else getattr(predicate, "__name__", "<predicate>")
+        )
+        return Matcher(predicate, lambda: f"pred({repr_str})")
+
 
 class PersistentMatcher(Matcher):
     _no_value = object()
