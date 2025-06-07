@@ -2,7 +2,9 @@ name: deploy-docs
 
 on:
   push:
-    branches: [main]
+#    branches: [main]
+  # any branch for testing purposes
+    branches: ['**']
   workflow_dispatch:
 
 permissions:
@@ -16,12 +18,10 @@ jobs:
       - name: Set up Python
         uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.12'
+          python-version: '3.9'
       - name: Install MkDocs
         run: |
           uv pip install mkdocs mkdocs-material
       - name: Deploy
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdocs gh-deploy --force
