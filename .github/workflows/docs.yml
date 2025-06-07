@@ -1,0 +1,27 @@
+name: deploy-docs
+
+on:
+  push:
+#    branches: [main]
+  # any branch for testing purposes
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.9'
+      - name: Install MkDocs
+        run: |
+          uv pip install mkdocs mkdocs-material
+      - name: Deploy
+        run: |
+          mkdocs gh-deploy --force
