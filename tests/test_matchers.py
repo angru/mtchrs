@@ -20,6 +20,17 @@ def test_matcher_keeps_value() -> None:
     assert {"id": 1, "child": {"id": 1}} == {"id": user_id, "child": {"id": user_id}}
 
 
+def test_dynamic_repr_with_persistent_matcher() -> None:
+    persistent = mtch.eq()
+    matcher = mtch.type(int) & persistent
+
+    assert matcher == 7
+    assert repr(matcher) == "(Type[<class 'int'>]) & (PersistentMatcher(value=7))"
+
+    inverted = ~persistent
+    assert repr(inverted) == "~(PersistentMatcher(value=7))"
+
+
 def test_persistent_matcher_repr() -> None:
     matcher = mtch.eq()
     assert matcher == "foo"
