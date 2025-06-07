@@ -16,6 +16,7 @@ from mtchrs.matchers import mtch
 assert mtch.any() == 123
 assert mtch.type(int) == 42
 assert mtch.regex(r"\d+") == "456"
+assert mtch.pred(lambda v: v > 0, "positive") == 1
 
 id_matcher = mtch.eq()
 assert {"id": 1, "child": {"id": 1}} == {"id": id_matcher, "child": {"id": id_matcher}}

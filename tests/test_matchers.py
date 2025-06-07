@@ -10,6 +10,16 @@ def test_basic_matchers() -> None:
     assert mtch.regex(r"\d+") == "42"
 
 
+def test_predicate_matcher() -> None:
+    def is_even(value: int) -> bool:
+        return value % 2 == 0
+
+    assert mtch.pred(is_even) == 2
+    positive = mtch.pred(lambda v: v > 0, "positive")
+    assert positive == 1
+    assert repr(mtch.pred(is_even)) == "pred(is_even)"
+
+
 def test_logical_operators_and_invert() -> None:
     number = mtch.type(int) | (mtch.type(str) & mtch.regex(r"\d+"))
     assert number == 789

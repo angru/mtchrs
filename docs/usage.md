@@ -27,6 +27,18 @@ Matches a string against a regular expression.
 assert mtch.regex(r"\d+") == "123"
 ```
 
+## `mtch.pred`
+
+Create a matcher from a custom predicate function.
+
+```python
+def is_even(value: int) -> bool:
+    return value % 2 == 0
+
+assert mtch.pred(is_even) == 2
+assert mtch.pred(lambda v: v > 0, "positive") == 3
+```
+
 ## `mtch.eq`
 
 Creates a persistent matcher that remembers the first value it was compared with and requires subsequent comparisons to match that value.
