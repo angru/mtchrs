@@ -1,6 +1,6 @@
 # mtchrs
 
-`mtchrs` provides small, composable matchers for validating values in tests and data structures.
+`mtchrs` provides small, composable matchers for validating values in tests and data structures. It is particularly useful when your code returns values that change from run to run, such as database generated IDs or UUIDs. Matchers can be nested inside dictionaries or lists and even used in `unittest.mock` assertions.
 
 ## Installation
 
