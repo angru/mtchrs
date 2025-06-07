@@ -5,6 +5,12 @@ import typing as t
 
 
 class Matcher:
+    """Base class for value matchers.
+
+    ``Matcher`` objects wrap a predicate function used during ``==``
+    comparisons. They can be combined with ``&`` and ``|`` to build complex
+    conditions or inverted with ``~``.
+    """
     def __init__(self, func: t.Callable[[t.Any], bool], repr_func: t.Callable[[], str]):
         self._func = func
         self._repr_func = repr_func
@@ -32,14 +38,20 @@ class Matcher:
 
     @staticmethod
     def any() -> Matcher:
+        """Return a matcher that accepts any value."""
+
         return Matcher(lambda v: True, lambda: "Any")
 
     @staticmethod
     def eq() -> PersistentMatcher:
+        """Return a matcher that remembers the first value it matches."""
+
         return PersistentMatcher()
 
     @staticmethod
     def type(*types: type) -> Matcher:
+        """Match when ``value`` is an instance of ``types``."""
+
         return Matcher(
             lambda v: isinstance(v, types),
             lambda: f'Type[{" | ".join((str(t) for t in types))}]',
@@ -47,6 +59,8 @@ class Matcher:
 
     @staticmethod
     def regex(pattern: t.Union[str, re.Pattern]) -> Matcher:
+        """Match a string using ``pattern``."""
+
         compiled = re.compile(pattern) if isinstance(pattern, str) else pattern
         return Matcher(
             lambda v: isinstance(v, str) and bool(compiled.match(v)),
@@ -70,6 +84,7 @@ class Matcher:
 
 
 class PersistentMatcher(Matcher):
+    """Matcher that stores the first value it matches for future comparisons."""
     _no_value = object()
 
     def __init__(self):
