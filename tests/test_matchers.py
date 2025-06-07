@@ -1,6 +1,6 @@
 from unittest.mock import Mock, call
 
-from mtchrs.matchers import mtch
+from mtchrs import mtch
 
 
 class TestAnyMatcher:

@@ -11,7 +11,7 @@ pip install mtchrs
 ## Quickstart
 
 ```python
-from mtchrs.matchers import mtch
+from mtchrs import mtch
 
 assert mtch.any() == 123
 assert mtch.type(int) == 42
