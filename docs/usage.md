@@ -1,0 +1,54 @@
+# Usage
+
+This library exposes a simple `Matcher` class and helper constructors via the `mtch` alias.
+
+## `mtch.any`
+
+Matches any value.
+
+```python
+assert mtch.any() == "anything"
+```
+
+## `mtch.type`
+
+Matches when the value is an instance of the provided type or types.
+
+```python
+assert mtch.type(int) == 1
+assert mtch.type(int, float) == 3.14
+```
+
+## `mtch.regex`
+
+Matches a string against a regular expression.
+
+```python
+assert mtch.regex(r"\d+") == "123"
+```
+
+## `mtch.eq`
+
+Creates a persistent matcher that remembers the first value it was compared with and requires subsequent comparisons to match that value.
+
+```python
+m = mtch.eq()
+assert m == "foo"
+assert m == "foo"  # subsequent comparisons must match
+```
+
+## Combining matchers
+
+Matchers support logical operators:
+
+* `&` — logical AND
+* `|` — logical OR
+* `~` — logical NOT
+
+```python
+number = mtch.type(int) | (mtch.type(str) & mtch.regex(r"\d+"))
+assert number == 123
+assert number == "456"
+```
+
+Matchers can also be used inside dictionaries or other containers for nested comparisons.

@@ -1,0 +1,7 @@
+site_name: mtchrs
+theme:
+  name: material
+repo_url: https://github.com/angru/mtchrs
+nav:
+  - Home: index.md
+  - Usage: usage.md
