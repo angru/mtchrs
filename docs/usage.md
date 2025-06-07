@@ -37,6 +37,37 @@ assert m == "foo"
 assert m == "foo"  # subsequent comparisons must match
 ```
 
+Persistent matchers shine when you need to assert that the *same* value appears
+multiple times. Some handy scenarios include:
+
+* **Repeated identifiers in nested objects** – capture an ID once and ensure it
+  matches everywhere else in the response.
+* **Tokens shared across multi-step operations** – store a session token from
+  one request and verify it is reused in later calls.
+* **Mock call sequences** – check that the exact argument value is passed to
+  different functions or multiple calls of the same mock.
+
+For example:
+
+```python
+from unittest.mock import Mock, call
+
+user_id = mtch.eq()
+assert {"id": 1, "child": {"id": 1}} == {"id": user_id, "child": {"id": user_id}}
+
+token = mtch.eq()
+assert {"token": "abc"} == {"token": token}
+assert {"auth": "abc"} == {"auth": token}
+
+mock = Mock()
+mock(user_id)
+mock(user_id)
+assert mock.call_args_list == [call(user_id), call(user_id)]
+
+bad = {"id": 1, "child": {"id": 2}}
+assert bad != {"id": user_id, "child": {"id": user_id}}
+```
+
 ## Combining matchers
 
 Matchers support logical operators:
