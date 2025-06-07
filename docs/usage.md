@@ -52,3 +52,40 @@ assert number == "456"
 ```
 
 Matchers can also be used inside dictionaries or other containers for nested comparisons.
+
+## Nested data structures
+
+Matchers can be mixed into lists or dictionaries to validate complex results without checking every value exactly.
+
+```python
+matcher = {
+    "id": mtch.type(int),
+    "items": [
+        {"value": mtch.regex(r"^x"), "meta": mtch.any()},
+        mtch.type(float),
+    ],
+}
+data = {"id": 1, "items": [{"value": "xyz", "meta": {}}, 1.5]}
+assert matcher == data
+```
+
+## Mock call assertions
+
+`Matcher` instances work with `unittest.mock` and pytest helpers. They can be used to assert against `call_args` or `call_args_list` when exact values vary.
+
+```python
+from unittest.mock import Mock, call
+
+mock = Mock()
+mock("foo", {"id": 1})
+
+expected = call(mtch.regex("f.o"), {"id": mtch.type(int)})
+assert mock.call_args == expected
+
+mock = Mock()
+mock(1)
+mock("bar")
+
+expected = [call(mtch.type(int)), call(mtch.regex("ba."))]
+assert mock.call_args_list == expected
+```
