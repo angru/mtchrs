@@ -121,4 +121,3 @@ class TestMockIntegration:
 
         expected = [call(mtch.type(int)), call(mtch.regex("ba."))]
         assert mock.call_args_list == expected
-
