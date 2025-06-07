@@ -25,7 +25,7 @@ def test_dynamic_repr_with_persistent_matcher() -> None:
     matcher = mtch.type(int) & persistent
 
     assert matcher == 7
-    assert repr(matcher) == f"(Type[<class 'int'>]) & (PersistentMatcher(value=7))"
+    assert repr(matcher) == "(Type[<class 'int'>]) & (PersistentMatcher(value=7))"
 
     inverted = ~persistent
     assert repr(inverted) == "~(PersistentMatcher(value=7))"

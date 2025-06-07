@@ -59,7 +59,9 @@ class PersistentMatcher(Matcher):
 
     def __init__(self):
         self._value = self._no_value
-        super().__init__(self._func, lambda: f"PersistentMatcher(value={self._value!r})")
+        super().__init__(
+            self._func, lambda: f"PersistentMatcher(value={self._value!r})"
+        )
 
     def _func(self, other: t.Any) -> bool:
         if self._value is self._no_value:
