@@ -2,9 +2,7 @@ name: deploy-docs
 
 on:
   push:
-#    branches: [main]
-  # any branch for testing purposes
-    branches: ['**']
+    branches: [main]
   workflow_dispatch:
 
 permissions:
