@@ -16,10 +16,10 @@ jobs:
       - name: Set up Python
         uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Install MkDocs
         run: |
-          uv pip install mkdocs mkdocs-material
+          uv sync --group docs
       - name: Deploy
         run: |
-          mkdocs gh-deploy --force
+          uv run --group docs mkdocs gh-deploy --force

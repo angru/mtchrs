@@ -1,22 +1,24 @@
 [project]
 name = "mtchrs"
 version = "0.1.0"
-description = ""
+description = "Composable equality matchers for Python tests"
 authors = [
     {name = "angru", email = "angru@list.ru"},
 ]
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+keywords = ["assertions", "matchers", "pytest", "testing"]
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "Operating System :: Unix",
@@ -27,12 +29,20 @@ classifiers = [
     "Topic :: Internet",
 ]
 
+[project.urls]
+Repository = "https://github.com/angru/mtchrs"
+Documentation = "https://angru.github.io/mtchrs/"
+Issues = "https://github.com/angru/mtchrs/issues"
+
 [build-system]
 requires = ["setuptools>=80.9.0", "wheel>=0.45.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["mtchrs"]
+
+[tool.setuptools.package-data]
+mtchrs = ["py.typed"]
 
 [dependency-groups]
 dev = [
