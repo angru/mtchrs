@@ -1,44 +1,93 @@
-name: Publish to PyPI and GitHub Releases
+name: Build and publish distributions
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/publish.yml'
+      - 'pyproject.toml'
+      - 'README.md'
+      - 'mtchrs/**'
   push:
     tags:
       - 'v*'
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
-  build-and-publish:
-    environment: release
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
         with:
-          python-version: '3.9'
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Install build dependencies
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: '3.13'
+          enable-cache: false
+
+      - name: Verify release tag
+        if: github.ref_type == 'tag'
         run: |
-          uv sync --only-group build
+          version=$(uv run --no-project python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "Expected tag v$version, got $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "The release tag must point to a commit on main" >&2
+            exit 1
+          fi
 
-      - name: Build package
+      - name: Build wheel and source distribution
+        run: uv build
+
+      - name: Check distributions
+        run: uvx twine check --strict dist/*
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+          overwrite: true
+
+  publish-pypi:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-github:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist/
+
+      - name: Attach distributions and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          uv build --sdist --wheel
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          skip-existing: true
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
+          if ! gh release view "$RELEASE_TAG" --json isDraft >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" dist/*.whl dist/*.tar.gz --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

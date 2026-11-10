@@ -8,7 +8,6 @@ inverted with ``~``. They work inside nested data structures and integrate with
 
 from __future__ import annotations
 
-import re
 import typing as t
 
 
@@ -20,93 +19,84 @@ class Matcher:
     conditions or inverted with ``~``.
     """
 
+    _precedence = 4
+
     def __init__(self, func: t.Callable[[t.Any], bool], repr_func: t.Callable[[], str]):
         self._func = func
         self._repr_func = repr_func
 
-    def __eq__(self, other: t.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return self._func(other)
 
-    def __and__(self, other: Matcher) -> Matcher:
-        return Matcher(
-            lambda v: self == v and other == v,
-            lambda: f"({self}) & ({other})",
+    def __and__(self, other: object) -> Matcher:
+        right = _as_matcher(other)
+        result = Matcher(
+            lambda v: self == v and right == v,
+            lambda: f"{self._operand_repr(2)} & {right._operand_repr(2)}",
         )
+        result._precedence = 2
+        return result
 
-    def __or__(self, other: "Matcher") -> "Matcher":
-        return Matcher(
-            lambda v: self == v or other == v,
-            lambda: f"({self}) | ({other})",
+    def __rand__(self, other: object) -> Matcher:
+        return Matcher.__and__(_as_matcher(other), self)
+
+    def __or__(self, other: object) -> Matcher:
+        right = _as_matcher(other)
+        result = Matcher(
+            lambda v: self == v or right == v,
+            lambda: f"{self._operand_repr(1)} | {right._operand_repr(1)}",
         )
+        result._precedence = 1
+        return result
+
+    def __ror__(self, other: object) -> Matcher:
+        return Matcher.__or__(_as_matcher(other), self)
 
     def __repr__(self) -> str:
         return self._repr_func()
 
     def __invert__(self) -> Matcher:
-        return Matcher(lambda v: not self._func(v), lambda: f"~({self})")
+        return Matcher(lambda v: not self._func(v), lambda: f"~{self._operand_repr(3)}")
 
-    @staticmethod
-    def any() -> Matcher:
-        """Return a matcher that accepts any value."""
-
-        return Matcher(lambda v: True, lambda: "Any")
-
-    @staticmethod
-    def eq() -> PersistentMatcher:
-        """Return a matcher that remembers the first value it matches."""
-
-        return PersistentMatcher()
-
-    @staticmethod
-    def type(*types: type) -> Matcher:
-        """Match when ``value`` is an instance of ``types``."""
-
-        return Matcher(
-            lambda v: isinstance(v, types),
-            lambda: f'Type[{" | ".join((str(t) for t in types))}]',
-        )
-
-    @staticmethod
-    def regex(pattern: t.Union[str, re.Pattern]) -> Matcher:
-        """Match a string using ``pattern``."""
-
-        compiled = re.compile(pattern) if isinstance(pattern, str) else pattern
-        return Matcher(
-            lambda v: isinstance(v, str) and bool(compiled.match(v)),
-            lambda: f"{compiled}",
-        )
-
-    @staticmethod
-    def pred(predicate: t.Callable[[t.Any], bool], name: str | None = None) -> Matcher:
-        """Create a matcher from a custom predicate.
-
-        Args:
-            predicate: Callable returning ``True`` when the value matches.
-            name: Optional representation used for ``repr``. Defaults to the
-                predicate's ``__name__`` when available.
-        """
-
-        repr_str = (
-            name if name is not None else getattr(predicate, "__name__", "<predicate>")
-        )
-        return Matcher(predicate, lambda: f"pred({repr_str})")
+    def _operand_repr(self, precedence: int) -> str:
+        return f"({self!r})" if self._precedence < precedence else repr(self)
 
 
 class PersistentMatcher(Matcher):
-    """Matcher that stores the first value it matches for future comparisons."""
+    """Matcher that stores the first value it is compared with."""
 
     _no_value = object()
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._value = self._no_value
-        super().__init__(
-            self._func, lambda: f"PersistentMatcher(value={self._value!r})"
-        )
+        super().__init__(self._compare, self._capture_repr)
 
-    def _func(self, other: t.Any) -> bool:
+    @property
+    def value(self) -> t.Any:
+        """Return the captured value or raise ValueError before capture."""
+        if self._value is self._no_value:
+            raise ValueError("mtch.eq() has not captured a value yet")
+        return self._value
+
+    def _compare(self, other: object) -> bool:
         if self._value is self._no_value:
             self._value = other
-        return self._value == other
+        return bool(self._value == other)
+
+    def _capture_repr(self) -> str:
+        if self._value is self._no_value:
+            return "mtch.eq()"
+        return f"mtch.eq({self._value!r})"
 
 
-mtch = Matcher
+def _is_class(value: object) -> t.TypeGuard[type]:
+    # Python 3.10 generic aliases can appear to be classes via __class__.
+    return issubclass(type(value), type)
+
+
+def _as_matcher(expected: object) -> Matcher:
+    if isinstance(expected, Matcher):
+        return expected
+    if _is_class(expected):
+        raise TypeError("Use mtch.type(...) to combine matchers with a class")
+    return Matcher(lambda value: expected == value, lambda: repr(expected))
