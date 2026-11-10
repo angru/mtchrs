@@ -1,6 +1,6 @@
 [project]
 name = "mtchrs"
-version = "0.1.0"
+version = "0.2.0"
 description = "Composable equality matchers for Python tests"
 authors = [
     {name = "angru", email = "angru@list.ru"},
