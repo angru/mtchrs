@@ -1,9 +1,24 @@
+import operator
 import re
+from collections import UserDict
+from collections.abc import Callable
+from types import ModuleType
+from typing import Optional
 from unittest.mock import Mock, call
 
 import pytest
 
-from mtchrs import mtch
+from mtchrs import Matcher, PersistentMatcher, mtch
+
+
+def test_factory_namespace() -> None:
+    from mtchrs.mtch import any as any_matcher
+
+    assert isinstance(mtch, ModuleType)
+    assert mtch.any is any_matcher
+    assert isinstance(mtch.any(), Matcher)
+    assert isinstance(mtch.eq(), PersistentMatcher)
+    assert not hasattr(Matcher, "any")
 
 
 class TestAnyMatcher:
@@ -28,10 +43,20 @@ class TestTypeMatcher:
         assert repr(mtch.type(int)) == "mtch.type(int)"
         assert repr(mtch.type(int, float)) == "mtch.type(int, float)"
 
-    @pytest.mark.parametrize("types", [(), (int, "str")])
+    @pytest.mark.parametrize("types", [(), (int, "str"), (int | list[int],)])
     def test_rejects_invalid_arguments(self, types: tuple[object, ...]) -> None:
         with pytest.raises(TypeError, match="requires one or more types"):
-            mtch.type(*types)  # type: ignore[arg-type]
+            mtch.type(*types)
+
+    @pytest.mark.parametrize("union", [int | None, Optional[int]])  # noqa: UP045
+    def test_matches_unions(self, union: object) -> None:
+        matcher = mtch.type(union, float)
+        assert matcher == 1
+        missing = None
+        assert matcher == missing
+        assert matcher == 1.5
+        assert matcher != "1"
+        assert repr(matcher) == "mtch.type(int | None, float)"
 
 
 class TestRegexMatcher:
@@ -170,6 +195,65 @@ class TestLogicalOperators:
         assert (7 & capture) == 7
         assert capture.value == 7
         assert repr(7 & capture) == "7 & mtch.eq(7)"
+
+    @pytest.mark.parametrize("combine", [operator.and_, operator.or_])
+    def test_rejects_bare_class_operands(
+        self, combine: Callable[[object, object], object]
+    ) -> None:
+        with pytest.raises(TypeError, match=r"mtch\.type"):
+            combine(mtch.any(), int)
+        with pytest.raises(TypeError, match=r"mtch\.type"):
+            combine(int, mtch.any())
+
+
+class TestPartialDictMatcher:
+    def test_matches_required_values_in_a_mapping(self) -> None:
+        matcher = mtch.partial_dict({1: mtch.type(int), "active": None})
+        assert UserDict({1: 42, "active": None, "extra": True}) == matcher
+        assert matcher != {1: 42}
+        assert matcher != {1: "42", "active": None}
+        assert matcher != [(1, 42), ("active", None)]
+
+    def test_empty_expectation_still_requires_a_mapping(self) -> None:
+        assert mtch.partial_dict({}) == {"extra": True}
+        assert mtch.partial_dict({}) != []
+
+    def test_repr(self) -> None:
+        assert repr(mtch.partial_dict({"id": mtch.type(int)})) == (
+            "mtch.partial_dict({'id': mtch.type(int)})"
+        )
+
+
+class TestUnorderedMatcher:
+    def test_assigns_overlapping_matchers(self) -> None:
+        matcher = mtch.unordered([mtch.any(), mtch.type(int), 1])
+        assert [1, 2, "x"] == matcher
+        assert matcher == [1, "x", 2]
+        assert matcher != [1, "x", "y"]
+
+    def test_counts_duplicates_and_supports_unhashable_values(self) -> None:
+        matcher = mtch.unordered([{"id": 1}, [2], [2]])
+        assert matcher == [[2], {"id": 1}, [2]]
+        assert matcher != [[2], {"id": 1}, {"id": 1}]
+        assert matcher != [{"id": 1}, [2]]
+        assert matcher != [{"id": 1}, [2], [2], [2]]
+
+    def test_empty_expectation_still_requires_a_list(self) -> None:
+        assert mtch.unordered([]) == []
+        assert mtch.unordered([]) != ()
+
+    def test_uses_an_already_captured_value(self) -> None:
+        user_id = mtch.eq()
+        assert user_id == 7
+        matcher = mtch.unordered([mtch.partial_dict({"id": user_id}), {"id": 2}])
+        assert matcher == [{"id": 2}, {"id": 7, "name": "Ada"}]
+        assert matcher != [{"id": 2}, {"id": 8, "name": "Ada"}]
+        assert user_id.value == 7
+
+    def test_repr(self) -> None:
+        assert (
+            repr(mtch.unordered([mtch.any(), 1])) == "mtch.unordered([mtch.any(), 1])"
+        )
 
 
 class TestNestedStructures:
