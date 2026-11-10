@@ -15,6 +15,7 @@ def test_factory_namespace() -> None:
     from mtchrs.mtch import any as any_matcher
 
     assert isinstance(mtch, ModuleType)
+    assert {name for name in dir(mtch) if not name.startswith("_")} == set(mtch.__all__)
     assert mtch.any is any_matcher
     assert isinstance(mtch.any(), Matcher)
     assert isinstance(mtch.eq(), PersistentMatcher)
@@ -214,6 +215,11 @@ class TestPartialDictMatcher:
         assert matcher != {1: "42", "active": None}
         assert matcher != [(1, 42), ("active", None)]
 
+    def test_nested_dicts_match_exactly_unless_wrapped(self) -> None:
+        value = {"user": {"id": 1, "name": "Ada"}}
+        assert mtch.partial_dict({"user": {"id": 1}}) != value
+        assert mtch.partial_dict({"user": mtch.partial_dict({"id": 1})}) == value
+
     def test_empty_expectation_still_requires_a_mapping(self) -> None:
         assert mtch.partial_dict({}) == {"extra": True}
         assert mtch.partial_dict({}) != []
@@ -238,9 +244,15 @@ class TestUnorderedMatcher:
         assert matcher != [{"id": 1}, [2]]
         assert matcher != [{"id": 1}, [2], [2], [2]]
 
-    def test_empty_expectation_still_requires_a_list(self) -> None:
+    def test_matches_tuples(self) -> None:
+        assert mtch.unordered([1, 2, 2]) == (2, 1, 2)
+        assert mtch.unordered((1, 2, 2)) != (1, 1, 2)
+
+    def test_empty_expectation_still_requires_a_list_or_tuple(self) -> None:
         assert mtch.unordered([]) == []
-        assert mtch.unordered([]) != ()
+        assert mtch.unordered([]) == ()
+        assert mtch.unordered([]) != ""
+        assert mtch.unordered([]) != {}
 
     def test_uses_an_already_captured_value(self) -> None:
         user_id = mtch.eq()

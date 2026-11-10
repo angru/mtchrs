@@ -21,6 +21,9 @@ from mtchrs import mtch
 data = {"id": 1, "items": ["xyz", 1.5]}
 matcher = {"id": mtch.type(int), "items": [mtch.regex(r"x.*"), mtch.type(float)]}
 assert matcher == data
+
+assert mtch.partial_dict({"id": mtch.type(int)}) == data
+assert mtch.unordered(["red", "blue"]) == ["blue", "red"]
 ```
 
 ## Contributing

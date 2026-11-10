@@ -151,13 +151,22 @@ assert {"id": 7, "name": "Ada", "deleted_at": None} == user
 assert {"id": 7, "name": "Ada"} != user
 ```
 
-## `mtch.unordered`
-
-Matches a list with exactly the expected elements in any order. Each expected
-element must match a distinct list position, so duplicates count separately.
+A plain nested dictionary still uses exact equality. Wrap it in another
+`partial_dict` to allow extra keys at that level.
 
 ```python
-assert mtch.unordered([mtch.type(int), 1]) == [1, 2]
+data = {"user": {"id": 1, "name": "Ada"}}
+assert mtch.partial_dict({"user": {"id": 1}}) != data
+assert mtch.partial_dict({"user": mtch.partial_dict({"id": 1})}) == data
+```
+
+## `mtch.unordered`
+
+Matches a list or tuple with exactly the expected elements in any order. Each
+expected element must match a distinct position, so duplicates count separately.
+
+```python
+assert mtch.unordered([mtch.type(int), 1]) == (1, 2)
 assert mtch.unordered([[1], [2], [2]]) == [[2], [1], [2]]
 ```
 

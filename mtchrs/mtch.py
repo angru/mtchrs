@@ -1,32 +1,36 @@
 """Factory functions for composable equality matchers."""
 
-import re
-import typing as t
-from collections import deque
-from collections.abc import Mapping, Sequence
-from functools import cache
-from types import NoneType, UnionType
+import re as _re
+import typing as _t
+from collections import deque as _deque
+from collections.abc import Mapping as _Mapping
+from collections.abc import Sequence as _Sequence
+from functools import cache as _cache
+from types import NoneType as _NoneType
+from types import UnionType as _UnionType
 
-from mtchrs.matchers import Matcher, PersistentMatcher, _is_class
+from mtchrs.matchers import Matcher as _Matcher
+from mtchrs.matchers import PersistentMatcher as _PersistentMatcher
+from mtchrs.matchers import _is_class
 
 __all__ = ["any", "eq", "partial_dict", "pred", "regex", "type", "unordered"]
 
 _TYPE_ERROR = "mtch.type() requires one or more types or unions of types"
 
 
-def any() -> Matcher:
+def any() -> _Matcher:
     """Return a matcher that accepts any value."""
 
-    return Matcher(lambda v: True, lambda: "mtch.any()")
+    return _Matcher(lambda v: True, lambda: "mtch.any()")
 
 
-def eq() -> PersistentMatcher:
+def eq() -> _PersistentMatcher:
     """Return a matcher that captures the first value it is compared with."""
 
-    return PersistentMatcher()
+    return _PersistentMatcher()
 
 
-def type(*types: object) -> Matcher:
+def type(*types: object) -> _Matcher:
     """Match instances of any supplied class or union of classes."""
 
     if not types:
@@ -35,39 +39,39 @@ def type(*types: object) -> Matcher:
     allowed = []
     names = []
     for candidate in types:
-        origin = t.get_origin(candidate)
-        is_union = origin is UnionType or origin is t.Union
+        origin = _t.get_origin(candidate)
+        is_union = origin is _UnionType or origin is _t.Union
         members: tuple[object, ...] = (
-            t.get_args(candidate) if is_union else (candidate,)
+            _t.get_args(candidate) if is_union else (candidate,)
         )
         member_names = []
         for cls in members:
-            if not _is_class(cls) or cls is t.Any:
+            if not _is_class(cls) or cls is _t.Any:
                 raise TypeError(_TYPE_ERROR)
             allowed.append(cls)
             member_names.append(
-                "None" if is_union and cls is NoneType else cls.__qualname__
+                "None" if is_union and cls is _NoneType else cls.__qualname__
             )
         names.append(" | ".join(member_names))
 
     classes = tuple(allowed)
     label = ", ".join(names)
-    return Matcher(lambda v: isinstance(v, classes), lambda: f"mtch.type({label})")
+    return _Matcher(lambda v: isinstance(v, classes), lambda: f"mtch.type({label})")
 
 
-def regex(pattern: str | re.Pattern[str]) -> Matcher:
+def regex(pattern: str | _re.Pattern[str]) -> _Matcher:
     """Match an entire string using a text regular expression."""
 
-    compiled = re.compile(pattern)
+    compiled = _re.compile(pattern)
     if isinstance(compiled.pattern, bytes):
         raise TypeError("mtch.regex() requires a text pattern")
-    return Matcher(
+    return _Matcher(
         lambda v: isinstance(v, str) and compiled.fullmatch(v) is not None,
         lambda: f"mtch.regex({pattern!r})",
     )
 
 
-def pred(predicate: t.Callable[[t.Any], object], name: str | None = None) -> Matcher:
+def pred(predicate: _t.Callable[[_t.Any], object], name: str | None = None) -> _Matcher:
     """Match truthy predicate results and propagate predicate exceptions.
 
     Args:
@@ -79,23 +83,23 @@ def pred(predicate: t.Callable[[t.Any], object], name: str | None = None) -> Mat
     repr_str = (
         name if name is not None else getattr(predicate, "__name__", "<predicate>")
     )
-    return Matcher(lambda v: bool(predicate(v)), lambda: f"mtch.pred({repr_str})")
+    return _Matcher(lambda v: bool(predicate(v)), lambda: f"mtch.pred({repr_str})")
 
 
-def partial_dict(expected: Mapping[t.Any, object]) -> Matcher:
+def partial_dict(expected: _Mapping[_t.Any, object]) -> _Matcher:
     """Match a mapping containing every expected key and value."""
     required = dict(expected)
 
     def matches(value: object) -> bool:
-        return isinstance(value, Mapping) and all(
+        return isinstance(value, _Mapping) and all(
             key in value and _equal(item, value[key]) for key, item in required.items()
         )
 
-    return Matcher(matches, lambda: f"mtch.partial_dict({required!r})")
+    return _Matcher(matches, lambda: f"mtch.partial_dict({required!r})")
 
 
-def unordered(expected: Sequence[object]) -> Matcher:
-    """Match a list with exactly the expected elements in any order.
+def unordered(expected: _Sequence[object]) -> _Matcher:
+    """Match a list or tuple with exactly the expected elements in any order.
 
     Elements may be compared with several candidates. Use side-effect-free
     comparisons and capture any persistent matchers before using them here.
@@ -104,30 +108,30 @@ def unordered(expected: Sequence[object]) -> Matcher:
 
     def matches(value: object) -> bool:
         return (
-            isinstance(value, list)
+            isinstance(value, (list, tuple))
             and len(items) == len(value)
             and _has_assignment(items, value)
         )
 
-    return Matcher(matches, lambda: f"mtch.unordered({list(items)!r})")
+    return _Matcher(matches, lambda: f"mtch.unordered({list(items)!r})")
 
 
 def _equal(expected: object, actual: object) -> bool:
     return expected is actual or bool(expected == actual)
 
 
-def _has_assignment(expected: tuple[object, ...], actual: list[object]) -> bool:
+def _has_assignment(expected: tuple[object, ...], actual: _Sequence[object]) -> bool:
     # Index each slot independently so duplicates can each be used once.
     owner: dict[int, int] = {}
 
-    @cache
+    @_cache
     def compatible(expected_index: int, actual_index: int) -> bool:
         return _equal(expected[expected_index], actual[actual_index])
 
     def assign(start: int) -> bool:
         # Follow occupied slots to their owners until a free slot can take
         # one of them. Then reassign the owners along that path.
-        pending = deque([start])
+        pending = _deque([start])
         previous_slot: dict[int, int | None] = {start: None}
         candidate_for: dict[int, int] = {}
         while pending:
