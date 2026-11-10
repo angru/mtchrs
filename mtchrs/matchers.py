@@ -8,7 +8,6 @@ inverted with ``~``. They work inside nested data structures and integrate with
 
 from __future__ import annotations
 
-import re
 import typing as t
 
 
@@ -62,56 +61,6 @@ class Matcher:
     def _operand_repr(self, precedence: int) -> str:
         return f"({self!r})" if self._precedence < precedence else repr(self)
 
-    @staticmethod
-    def any() -> Matcher:
-        """Return a matcher that accepts any value."""
-
-        return Matcher(lambda v: True, lambda: "mtch.any()")
-
-    @staticmethod
-    def eq() -> PersistentMatcher:
-        """Return a matcher that captures the first value it is compared with."""
-
-        return PersistentMatcher()
-
-    @staticmethod
-    def type(*types: type) -> Matcher:
-        """Match when ``value`` is an instance of ``types``."""
-
-        if not types or not all(isinstance(cls, type) for cls in types):
-            raise TypeError("mtch.type() requires one or more types")
-        names = ", ".join(cls.__qualname__ for cls in types)
-        return Matcher(lambda v: isinstance(v, types), lambda: f"mtch.type({names})")
-
-    @staticmethod
-    def regex(pattern: str | re.Pattern[str]) -> Matcher:
-        """Match an entire string using a text regular expression."""
-
-        compiled = re.compile(pattern)
-        if isinstance(compiled.pattern, bytes):
-            raise TypeError("mtch.regex() requires a text pattern")
-        return Matcher(
-            lambda v: isinstance(v, str) and compiled.fullmatch(v) is not None,
-            lambda: f"mtch.regex({pattern!r})",
-        )
-
-    @staticmethod
-    def pred(
-        predicate: t.Callable[[t.Any], object], name: str | None = None
-    ) -> Matcher:
-        """Match truthy predicate results and propagate predicate exceptions.
-
-        Args:
-            predicate: Callable returning a truthy value when the value matches.
-            name: Optional representation used for ``repr``. Defaults to the
-                predicate's ``__name__`` when available.
-        """
-
-        repr_str = (
-            name if name is not None else getattr(predicate, "__name__", "<predicate>")
-        )
-        return Matcher(lambda v: bool(predicate(v)), lambda: f"mtch.pred({repr_str})")
-
 
 class PersistentMatcher(Matcher):
     """Matcher that stores the first value it is compared with."""
@@ -129,10 +78,10 @@ class PersistentMatcher(Matcher):
             raise ValueError("mtch.eq() has not captured a value yet")
         return self._value
 
-    def _compare(self, other: t.Any) -> bool:
+    def _compare(self, other: object) -> bool:
         if self._value is self._no_value:
             self._value = other
-        return self._value == other
+        return bool(self._value == other)
 
     def _capture_repr(self) -> str:
         if self._value is self._no_value:
@@ -140,10 +89,14 @@ class PersistentMatcher(Matcher):
         return f"mtch.eq({self._value!r})"
 
 
+def _is_class(value: object) -> t.TypeGuard[type]:
+    # Python 3.10 generic aliases can appear to be classes via __class__.
+    return issubclass(type(value), type)
+
+
 def _as_matcher(expected: object) -> Matcher:
     if isinstance(expected, Matcher):
         return expected
+    if _is_class(expected):
+        raise TypeError("Use mtch.type(...) to combine matchers with a class")
     return Matcher(lambda value: expected == value, lambda: repr(expected))
-
-
-mtch = Matcher

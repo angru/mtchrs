@@ -1,6 +1,7 @@
 # Usage
 
-Import `mtch` from `mtchrs` to construct matchers.
+Import the `mtch` module with `from mtchrs import mtch`. Its factories return
+`Matcher` instances that you can compare or combine.
 
 ## `mtch.any`
 
@@ -12,11 +13,14 @@ assert mtch.any() == "anything"
 
 ## `mtch.type`
 
-Matches values that are instances of any of the supplied classes. Supply at least one class.
+Matches values that are instances of any of the supplied classes or unions.
+Supply at least one class or union of classes.
 
 ```python
 assert mtch.type(int) == 1
 assert mtch.type(int, float) == 3.14
+missing = None
+assert mtch.type(int | None) == missing
 ```
 
 ## `mtch.regex`
@@ -108,7 +112,8 @@ assert number == "456"
 ```
 
 You can also combine a matcher with a literal on either side. Operators evaluate
-the left operand first and short-circuit as needed.
+the left operand first and short-circuit as needed. Wrap classes with
+`mtch.type(...)` before using them as operands.
 
 ```python
 optional_int = None | mtch.type(int)
@@ -134,6 +139,40 @@ matcher = {
 data = {"id": 1, "items": [{"value": "xyz", "meta": {}}, 1.5]}
 assert matcher == data
 ```
+
+## `mtch.partial_dict`
+
+Matches a mapping that contains each specified key and value. Extra keys are
+allowed. A required key must be present even when its expected value is `None`.
+
+```python
+user = mtch.partial_dict({"id": mtch.type(int), "deleted_at": None})
+assert {"id": 7, "name": "Ada", "deleted_at": None} == user
+assert {"id": 7, "name": "Ada"} != user
+```
+
+A plain nested dictionary still uses exact equality. Wrap it in another
+`partial_dict` to allow extra keys at that level.
+
+```python
+data = {"user": {"id": 1, "name": "Ada"}}
+assert mtch.partial_dict({"user": {"id": 1}}) != data
+assert mtch.partial_dict({"user": mtch.partial_dict({"id": 1})}) == data
+```
+
+## `mtch.unordered`
+
+Matches a list or tuple with exactly the expected elements in any order. Each
+expected element must match a distinct position, so duplicates count separately.
+
+```python
+assert mtch.unordered([mtch.type(int), 1]) == (1, 2)
+assert mtch.unordered([[1], [2], [2]]) == [[2], [1], [2]]
+```
+
+An expected element may be compared with several candidates. Use
+side-effect-free predicates, and compare any `eq()` matcher explicitly with its
+intended value before using it inside `unordered`.
 
 ## Mock call assertions
 
