@@ -19,16 +19,16 @@ pip install mtchrs
 from mtchrs import mtch
 
 data = {"id": 1, "items": ["xyz", 1.5]}
-matcher = {"id": mtch.type(int), "items": [mtch.regex(r"^x"), mtch.type(float)]}
+matcher = {"id": mtch.type(int), "items": [mtch.regex(r"x.*"), mtch.type(float)]}
 assert matcher == data
 ```
 
 ## Contributing
 
-Pull requests are welcome! Install dependencies from the `dev`, `lint` and `test` groups using [uv](https://github.com/astral-sh/uv) and run the linters and test suite before submitting a PR:
+Pull requests are welcome! Install the dependency groups using [uv](https://github.com/astral-sh/uv) and run the linters and test suite before submitting a PR:
 
 ```bash
-uv pip install -e .[dev,lint,test]
+uv sync --all-groups
 uv run pre-commit run --all-files
 uv run pytest
 ```

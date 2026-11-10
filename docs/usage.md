@@ -1,6 +1,6 @@
 # Usage
 
-This library exposes a simple `Matcher` class and helper constructors via the `mtch` alias.
+Import `mtch` from `mtchrs` to construct matchers.
 
 ## `mtch.any`
 
@@ -12,7 +12,7 @@ assert mtch.any() == "anything"
 
 ## `mtch.type`
 
-Matches when the value is an instance of the provided type or types.
+Matches values that are instances of any of the supplied classes. Supply at least one class.
 
 ```python
 assert mtch.type(int) == 1
@@ -21,15 +21,21 @@ assert mtch.type(int, float) == 3.14
 
 ## `mtch.regex`
 
-Matches a string against a regular expression.
+Matches an entire string using a text pattern or a compiled text regular expression.
+Add `.*` after the pattern to allow trailing characters. Bytes patterns raise
+`TypeError` when the matcher is constructed.
 
 ```python
 assert mtch.regex(r"\d+") == "123"
+assert mtch.regex(r"\d+") != "123abc"
+assert mtch.regex(r"\d+.*") == "123abc"
 ```
 
 ## `mtch.pred`
 
-Create a matcher from a custom predicate function.
+Creates a matcher from a custom predicate. Its result is converted to `bool`.
+Exceptions raised by the predicate propagate to the caller. Use a type guard
+such as `mtch.type(int) & mtch.pred(is_even)` when a predicate expects integers.
 
 ```python
 def is_even(value: int) -> bool:
@@ -47,7 +53,14 @@ Creates a persistent matcher that remembers the first value it was compared with
 m = mtch.eq()
 assert m == "foo"
 assert m == "foo"  # subsequent comparisons must match
+assert m.value == "foo"
 ```
+
+The read-only `.value` property raises `ValueError` before the first comparison.
+For example, in `(mtch.eq() & mtch.type(int)) == "x"`, the first comparison
+captures `"x"` before the type check rejects it. For searches with `in`,
+`assert_any_call`, or `assert_has_calls`, compare the matcher explicitly with the
+intended value first.
 
 Persistent matchers shine when you need to assert that the *same* value appears
 multiple times. Some handy scenarios include:
@@ -72,8 +85,8 @@ assert {"token": "abc"} == {"token": token}
 assert {"auth": "abc"} == {"auth": token}
 
 mock = Mock()
-mock(user_id)
-mock(user_id)
+mock(1)
+mock(1)
 assert mock.call_args_list == [call(user_id), call(user_id)]
 
 bad = {"id": 1, "child": {"id": 2}}
@@ -94,6 +107,16 @@ assert number == 123
 assert number == "456"
 ```
 
+You can also combine a matcher with a literal on either side. Operators evaluate
+the left operand first and short-circuit as needed.
+
+```python
+optional_int = None | mtch.type(int)
+missing = None
+assert optional_int == missing
+assert optional_int == 7
+```
+
 Matchers can also be used inside dictionaries or other containers for nested comparisons.
 
 ## Nested data structures
@@ -104,7 +127,7 @@ Matchers can be mixed into lists or dictionaries to validate complex results wit
 matcher = {
     "id": mtch.type(int),
     "items": [
-        {"value": mtch.regex(r"^x"), "meta": mtch.any()},
+        {"value": mtch.regex(r"x.*"), "meta": mtch.any()},
         mtch.type(float),
     ],
 }
@@ -132,3 +155,10 @@ mock("bar")
 expected = [call(mtch.type(int)), call(mtch.regex("ba."))]
 assert mock.call_args_list == expected
 ```
+
+## Gotchas
+
+- `mtch.type(int)` also matches `True` and `False` because `bool` is a subclass of `int`.
+- Matchers are unhashable. Use them as dictionary values or list elements.
+- A custom value's `__eq__` may return `False` without giving the matcher a
+  chance to compare. Put the matcher on the left for those values.
